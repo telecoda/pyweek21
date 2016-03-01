@@ -34,6 +34,14 @@ Move the cursor around the screen with the mouse.
 Press the left mouse button to fire the ducks.
 
 
+References
+————
+Apocalypse Font
+http://californiafonts.com/download/font/3332
+
+Siren
+http://www.freesound.org/people/fmagrao/sounds/80761/
+
 Development notes 
 -----------------
 

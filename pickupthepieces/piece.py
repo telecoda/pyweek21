@@ -13,6 +13,9 @@ CENTRE_CROSS_SIZE = 10
 
 ROTATION_SPEED = 5
 
+LOCATION_ACCURACY = 10
+ANGLE_ACCURACY = 5
+
 def rotate_around_point(x,y, angle):
     ra = math.radians(angle)
     s = math.sin(ra)
@@ -36,20 +39,53 @@ class Piece(object):
         self.height = image.get_height()
         self.cx = self.width / 2
         self.cy = self.height / 2
-        self.angle = 10.0
+        self.angle = 0.0
         self.update_polygon()
         self.dragging = False
-        self.in_place = False # is it in correct place in puzzle?
+        self.in_position = False # is it in correct position in puzzle?
+
+        # save original values for checking when a piece is back in position
+        self.original_x_offset = self.x_offset
+        self.original_y_offset = self.y_offset
+        self.original_angle = self.angle
+        self.min_x_offset = self.x_offset - LOCATION_ACCURACY
+        self.min_y_offset = self.y_offset - LOCATION_ACCURACY
+        self.max_x_offset = self.x_offset + LOCATION_ACCURACY
+        self.max_y_offset = self.y_offset + LOCATION_ACCURACY
+        self.min_angle = self.angle - ANGLE_ACCURACY % 360
+        self.max_angle = self.angle + ANGLE_ACCURACY % 360
+
+    def check_position(self):
+        """
+        Checks if piece is in correct location and rotation
+        within a given accuracy
+        """
+        if self.min_x_offset <= self.x_offset  and self.max_x_offset >= self.x_offset and self.min_y_offset <= self.y_offset and self.max_y_offset >= self.y_offset and self.min_angle <= self.angle and self.max_angle >= self.angle:
+                self.in_position = True
+                # snap to correct pos
+                self.x_offset = self.original_x_offset
+                self.y_offset = self.original_y_offset
+                self.angle = self.original_angle
+                self.update_polygon()
+                self.stop_dragging()
+
 
     def drag(self, delta):
-        if self.in_place:
-            # already in place, no more dragging
+        if self.in_position:
+            # already in position, no more dragging
             return
 
         self.x_offset += delta[0]
         self.y_offset += delta[1]
-        self.update_polygon() 
+        self.update_polygon()
+
+        # check if in correct location
+        self.check_position()
     
+    def move(self, delta, angle):
+        self.drag(delta)
+        self.angle = angle
+
     def render(self, screen):
         # rotate image
 
@@ -85,22 +121,26 @@ class Piece(object):
         Renders a border around the edges of the puzzle piece
         """
         self.rotated_polygon = self.original_polygon.rotate(math.radians(self.angle))
+        colour = BLACK
+        if self.in_position:
+            colour = GREEN
         if self.dragging:
-            pygame.draw.polygon(screen, RED, self.rotated_polygon, 5)
-        else:
-            pygame.draw.polygon(screen, GREEN, self.rotated_polygon, 5)
+            colour = RED
+
+        pygame.draw.polygon(screen, colour, self.rotated_polygon, 5)
+
 
     def rotate_left(self):
-        if self.in_place:
-            # already in place, no more rotating
+        if self.in_position:
+            # already in position, no more rotating
             return
 
         self.angle -= ROTATION_SPEED
         self.angle = self.angle % 360
 
     def rotate_right(self):
-        if self.in_place:
-            # already in place, no more rotating
+        if self.in_position:
+            # already in position, no more rotating
             return
 
         self.angle += ROTATION_SPEED
@@ -111,6 +151,7 @@ class Piece(object):
 
     def stop_dragging(self):
         self.dragging = False
+       
 
     def update_polygon(self):
         x = self.x_offset + self.cx

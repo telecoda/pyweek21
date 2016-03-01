@@ -1,4 +1,4 @@
-import os, pygame
+import os, pygame, random
 from pygame.locals import *
 from data import load
 from piece import Piece
@@ -93,7 +93,6 @@ class PickUpPieces(object):
                 return True
             elif event.type == MOUSEBUTTONDOWN:
                 self.start_game()
-            
 
     def handle_paused_events(self):
         for event in pygame.event.get():
@@ -273,5 +272,15 @@ class PickUpPieces(object):
 
     def start_level(self):
         # init puzzle images
-        self.pieces = self.split_image(self.level_images[self.level],2,2)
+        self.pieces = self.split_image(self.level_images[self.level],3,3)
         self.current_piece = None
+        self.puzzle_complete = False
+        self.shuffle_pieces()
+
+    def shuffle_pieces(self):
+        for piece in self.pieces:
+            # random angle
+            new_angle = random.randint(0,360) / 5 * 5
+            new_x_offset = random.randint(0,200)
+            new_y_offset = random.randint(0,200)
+            piece.move((new_x_offset, new_y_offset), new_angle)
