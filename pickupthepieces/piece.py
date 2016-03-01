@@ -68,6 +68,8 @@ class Piece(object):
                 self.angle = self.original_angle
                 self.update_polygon()
                 self.stop_dragging()
+                return True
+        return False
 
 
     def drag(self, delta):
@@ -80,16 +82,16 @@ class Piece(object):
         self.update_polygon()
 
         # check if in correct location
-        self.check_position()
+        return self.check_position()
     
     def move(self, delta, angle):
         self.drag(delta)
         self.angle = angle
 
-    def render(self, screen):
+    def render(self, screen, x_scale, y_scale):
         # rotate image
 
-        rotated_image = pygame.transform.rotate(self.image,-self.angle)
+        rotated_image = pygame.transform.rotozoom(self.image,-self.angle,self.x_scale)
 
         image_pos_x = self.x_offset + self.cx
         image_pos_y = self.y_offset + self.cy

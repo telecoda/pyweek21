@@ -145,7 +145,7 @@ class PickUpPieces(object):
 
         # render puzzle pieces
         for piece in self.pieces:
-            piece.render(self.screen) 
+            piece.render(self.screen, self.x_scale, self.y_scale) 
             #piece.angle += 1.0
 
         #self.pieces[0].render(self.screen)
