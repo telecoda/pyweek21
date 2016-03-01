@@ -1,0 +1,12 @@
+include android.txt
+include BUGS.txt
+include CHANGES.txt
+include LICENSE.txt
+include README.txt
+include TODO.txt
+include pickupthepieces/__init__.py
+include pickupthepieces/__main__.py
+include pickupthepieces/data.py
+include pyweek_upload.py
+include run_game.py
+include setup.py

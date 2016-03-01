@@ -1,0 +1,4 @@
+title=pickupthepieces
+author=telecoda
+api=1
+orientation=landscape
