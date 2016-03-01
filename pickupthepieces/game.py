@@ -65,6 +65,8 @@ class PickUpPieces(object):
         self.clock = pygame.time.Clock()
         self.state = MENU
         self.current_piece = None
+        self.x_scale = 0.5
+        self.y_scale = 0.5
 
     def handle_playing_events(self):
         mouse_pos = pygame.mouse.get_pos()
@@ -230,9 +232,12 @@ class PickUpPieces(object):
             # move diff
             x_delta = mouse_pos[0]-self.last_drag_pos[0]
             y_delta = mouse_pos[1]-self.last_drag_pos[1]
-            self.current_piece.drag((x_delta,y_delta))
-
             self.last_drag_pos = mouse_pos
+            placed = self.current_piece.drag((x_delta,y_delta))
+
+            if placed:
+                self.pieces_to_place -= 1
+                print "Completed!"
 
 
     def stop_dragging_piece(self, mouse_pos):
@@ -276,6 +281,7 @@ class PickUpPieces(object):
         self.current_piece = None
         self.puzzle_complete = False
         self.shuffle_pieces()
+        self.pieces_to_place = len(self.pieces)
 
     def shuffle_pieces(self):
         for piece in self.pieces:
