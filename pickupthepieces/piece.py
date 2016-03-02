@@ -8,6 +8,7 @@ WHITE = (255, 255, 255)
 BLUE =  (  0,   0, 255)
 GREEN = (  0, 255,   0)
 RED =   (255,   0,   0)
+GREY =   (128, 128, 128)
 
 CENTRE_CROSS_SIZE = 10
 
@@ -27,7 +28,8 @@ def rotate_around_point(x,y, angle):
     return x_new, y_new
 
 class Piece(object):
-    def __init__(self,row,col,image, x_offset, y_offset):
+    def __init__(self,game,row,col,image, x_offset, y_offset):
+        self.game = game
         self.row = row
         self.col = col
         self.image = image
@@ -40,7 +42,6 @@ class Piece(object):
         self.cx = self.width / 2
         self.cy = self.height / 2
         self.angle = 0.0
-        self.update_polygon()
         self.dragging = False
         self.in_position = False # is it in correct position in puzzle?
 
@@ -48,25 +49,29 @@ class Piece(object):
         self.original_x_offset = self.x_offset
         self.original_y_offset = self.y_offset
         self.original_angle = self.angle
-        self.min_x_offset = self.x_offset - LOCATION_ACCURACY
-        self.min_y_offset = self.y_offset - LOCATION_ACCURACY
-        self.max_x_offset = self.x_offset + LOCATION_ACCURACY
-        self.max_y_offset = self.y_offset + LOCATION_ACCURACY
-        self.min_angle = self.angle - ANGLE_ACCURACY % 360
-        self.max_angle = self.angle + ANGLE_ACCURACY % 360
+        # polygon to render correct location for piece
+        self.click_polygon = self.create_click_polygon()
+        self.position_polygon = self.create_position_polygon()
 
     def check_position(self):
         """
         Checks if piece is in correct location and rotation
         within a given accuracy
         """
+        self.min_x_offset = self.game.pos_cx + self.original_x_offset - LOCATION_ACCURACY
+        self.min_y_offset = self.game.pos_cy +self.original_y_offset - LOCATION_ACCURACY
+        self.max_x_offset = self.game.pos_cx + self.original_x_offset + LOCATION_ACCURACY
+        self.max_y_offset = self.game.pos_cy +self.original_y_offset + LOCATION_ACCURACY
+        self.min_angle = self.original_angle - ANGLE_ACCURACY % 360
+        self.max_angle = self.original_angle + ANGLE_ACCURACY % 360
+
         if self.min_x_offset <= self.x_offset  and self.max_x_offset >= self.x_offset and self.min_y_offset <= self.y_offset and self.max_y_offset >= self.y_offset and self.min_angle <= self.angle and self.max_angle >= self.angle:
                 self.in_position = True
                 # snap to correct pos
-                self.x_offset = self.original_x_offset
-                self.y_offset = self.original_y_offset
+                self.x_offset = self.original_x_offset + self.game.pos_cx
+                self.y_offset = self.original_y_offset + self.game.pos_cy
                 self.angle = self.original_angle
-                self.update_polygon()
+                #self.update_polygon()
                 self.stop_dragging()
                 return True
         return False
@@ -77,9 +82,9 @@ class Piece(object):
             # already in position, no more dragging
             return
 
-        self.x_offset += delta[0]
-        self.y_offset += delta[1]
-        self.update_polygon()
+        self.x_offset += (delta[0] / self.game.scale)
+        self.y_offset += (delta[1] / self.game.scale)
+        #self.update_polygon()
 
         # check if in correct location
         return self.check_position()
@@ -88,16 +93,22 @@ class Piece(object):
         self.drag(delta)
         self.angle = angle
 
-    def render(self, screen, x_scale, y_scale):
+    def render(self, screen):
         # rotate image
 
-        rotated_image = pygame.transform.rotozoom(self.image,-self.angle,self.x_scale)
+        rotated_image = pygame.transform.rotozoom(self.image, -self.angle, self.game.scale)
 
-        image_pos_x = self.x_offset + self.cx
-        image_pos_y = self.y_offset + self.cy
+        if self.in_position:
+            image_pos_x = self.original_x_offset + self.game.pos_cx + self.cx
+            image_pos_y = self.original_y_offset + self.game.pos_cy + self.cy
 
-        image_cx = image_pos_x + self.cx
-        image_cy = image_pos_y + self.cy
+        else:
+            image_pos_x = self.x_offset + self.cx
+            image_pos_y = self.y_offset + self.cy
+
+        image_cx = float(image_pos_x + self.cx) * self.game.scale
+        image_cy = float(image_pos_y + self.cy) * self.game.scale
+
 
         rotated_cx =  image_cx - rotated_image.get_width() /2
         rotated_cy =  image_cy - rotated_image.get_height() /2 
@@ -110,8 +121,8 @@ class Piece(object):
         """
         Renders a cross in the centre of the puzzle piece
         """
-        cx = self.x_offset + self.cx * 2
-        cy = self.y_offset + self.cy * 2
+        cx = float(self.x_offset + self.cx * 2) * self.game.scale
+        cy = float(self.y_offset + self.cy * 2) * self.game.scale
 
         pygame.draw.line(screen, GREEN, [cx, cy], [cx + CENTRE_CROSS_SIZE, cy], 5)
         pygame.draw.line(screen, GREEN, [cx, cy], [cx - CENTRE_CROSS_SIZE, cy], 5)
@@ -122,15 +133,27 @@ class Piece(object):
         """
         Renders a border around the edges of the puzzle piece
         """
-        self.rotated_polygon = self.original_polygon.rotate(math.radians(self.angle))
         colour = BLACK
+        width = 1
         if self.in_position:
             colour = GREEN
-        if self.dragging:
-            colour = RED
+            self.position_polygon = self.create_position_polygon()
+            self.rotated_polygon = self.position_polygon.rotate(math.radians(self.angle))
+        else:
+            if self.dragging:
+                colour = RED
+                width = 3
+            self.click_polygon = self.create_click_polygon()
+            self.rotated_polygon = self.click_polygon.rotate(math.radians(self.angle))
 
-        pygame.draw.polygon(screen, colour, self.rotated_polygon, 5)
+        pygame.draw.polygon(screen, colour, self.rotated_polygon, 1)
 
+    def render_position(self,screen):
+        """
+        Render border for original position of piece
+        """
+        self.position_polygon = self.create_position_polygon()
+        pygame.draw.polygon(screen, GREY, self.position_polygon, 1)
 
     def rotate_left(self):
         if self.in_position:
@@ -139,6 +162,7 @@ class Piece(object):
 
         self.angle -= ROTATION_SPEED
         self.angle = self.angle % 360
+        return self.check_position()
 
     def rotate_right(self):
         if self.in_position:
@@ -147,6 +171,7 @@ class Piece(object):
 
         self.angle += ROTATION_SPEED
         self.angle = self.angle % 360
+        return self.check_position()
 
     def start_dragging(self):
         self.dragging = True
@@ -155,11 +180,11 @@ class Piece(object):
         self.dragging = False
        
 
-    def update_polygon(self):
-        x = self.x_offset + self.cx
-        y = self.y_offset + self.cy
-        width = self.width
-        height = self.height
+    def create_click_polygon(self):
+        x = float(self.x_offset + self.cx) * self.game.scale
+        y = float(self.y_offset + self.cy) * self.game.scale
+        width = float(self.width) * self.game.scale
+        height = float(self.height) * self.game.scale
         points = []
         
         points.append((x, y))
@@ -167,5 +192,18 @@ class Piece(object):
         points.append((x + width, y + height))
         points.append((x, y + height))
 
-        self.original_polygon = Polygon(points)
+        return Polygon(points)
 
+    def create_position_polygon(self):
+        x = float(self.original_x_offset + self.cx + self.game.pos_cx) * self.game.scale
+        y = float(self.original_y_offset + self.cy + self.game.pos_cy) * self.game.scale
+        width = float(self.width) * self.game.scale
+        height = float(self.height) * self.game.scale
+        points = []
+        
+        points.append((x, y))
+        points.append((x + width, y))
+        points.append((x + width, y + height))
+        points.append((x, y + height))
+
+        return Polygon(points)
