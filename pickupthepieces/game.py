@@ -22,6 +22,10 @@ TOP = 3
 MIDDLE = 4
 BOTTOM = 5
 
+# COLOURS
+MENU_BROWN = (109,69,27)
+MENU_GREY = (160,160,160)
+
 def load_image(file):
     "loads an image"
     file = load(file)
@@ -123,6 +127,8 @@ class PickUpPieces(object):
         self.font_16 = load_font('ApocalypseDeluxe-Regular.ttf', 16)
         self.font_24 = load_font('ApocalypseDeluxe-Regular.ttf', 24)
         self.font_36 = load_font('ApocalypseDeluxe-Regular.ttf', 36)
+        self.font_48 = load_font('ApocalypseDeluxe-Regular.ttf', 48)
+        self.font_72 = load_font('ApocalypseDeluxe-Regular.ttf', 72)
 
 
     def render(self):
@@ -167,9 +173,9 @@ class PickUpPieces(object):
     def render_menu(self):
         self.screen.blit(self.title_image, (0, 0))
         self.render_shadow_text(
-            self.font_24, "Pick up the pieces", self.cx, 0, (255, 0, 0), -2, CENTRE)
+            self.font_72, "Tear-reform", self.cx, 0, MENU_BROWN, -2, CENTRE)
         self.render_shadow_text(
-            self.font_24, "Click to start", self.cx, 50, (255, 255, 0), -2, CENTRE)
+            self.font_72, "Click to start", self.cx, self.cy, MENU_GREY, -2, CENTRE)
 
     def render_fps(self):
         fps = 'fps:%f' % self.clock.get_fps()
@@ -185,7 +191,7 @@ class PickUpPieces(object):
         pass
 
     def render_shadow_text(self, font, text, x, y, colour, shadow_offset=-2, align=CENTRE):
-        surface = font.render(text, 1, colour)
+        surface = font.render(text, 1, (0,0,0))
 
         # default to top left , no offset
         x_offset = 0
@@ -201,9 +207,9 @@ class PickUpPieces(object):
 
         self.screen.blit(surface, (x + x_offset, y + y_offset))
 
-        # surface = font.render(text, 1, colour)
-        # surface = self.scale_image(surface)
-        # self.screen.blit(
+        surface = font.render(text, 1, (colour))
+        self.screen.blit(
+            surface, (x + x_offset + shadow_offset, y + y_offset + shadow_offset))
 
     def rotate_piece_left(self):
         if self.current_piece:
