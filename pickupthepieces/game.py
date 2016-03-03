@@ -120,9 +120,9 @@ class PickUpPieces(object):
         self.title_image = load_image('title.png')
         self.shadow_image = load_image('shadow.png')
 
-        self.font_16 = load_font('space age.ttf', 16)
-        self.font_24 = load_font('space age.ttf', 24)
-        self.font_36 = load_font('space age.ttf', 36)
+        self.font_16 = load_font('ApocalypseDeluxe-Regular.ttf', 16)
+        self.font_24 = load_font('ApocalypseDeluxe-Regular.ttf', 24)
+        self.font_36 = load_font('ApocalypseDeluxe-Regular.ttf', 36)
 
 
     def render(self):
