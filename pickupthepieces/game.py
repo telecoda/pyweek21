@@ -2,6 +2,7 @@ import os, pygame, random
 from pygame.locals import *
 from data import load
 from piece import Piece
+from levels import levels
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
@@ -10,9 +11,13 @@ KEY_REPEAT = 50  # Key repeat in milliseconds
 
 # Game states
 MENU = 0
-PLAYING = 1
-PAUSED = 2
-GAME_OVER = 3
+INSTRUCTIONS = 1
+LEVEL_INTRO = 2
+PLAYING = 3
+LEVEL_COMPLETED = 4
+PAUSED = 5
+GAME_OVER = 6
+GAME_COMPLETED = 7
 
 # Alignment
 CENTRE = 0
@@ -65,10 +70,19 @@ class PickUpPieces(object):
         self.cx = SCREEN_WIDTH/2
         self.cy = SCREEN_HEIGHT/2
 
+        self.levels = levels
+        self.max_levels = len(levels)-1
+
         self.init_assets()
         self.clock = pygame.time.Clock()
+
+        self.reset_game()
+
+    def reset_game(self):
         self.state = MENU
         self.current_piece = None
+        self.current_level = 1
+        self.score = 0
         self.scale = 1.0
         self.pos_cx = 0.0
         self.pos_cy = 0.0
@@ -90,6 +104,9 @@ class PickUpPieces(object):
                 self.rotate_piece_left()
             elif event.type == KEYDOWN and event.key == K_d:
                 self.rotate_piece_right()
+            # TEMP: level skip
+            elif event.type == KEYDOWN and event.key == K_SPACE:
+                self.level_completed()
 
 
     def handle_menu_events(self):
@@ -99,7 +116,35 @@ class PickUpPieces(object):
             elif event.type == KEYDOWN and event.key == K_ESCAPE:
                 return True
             elif event.type == MOUSEBUTTONDOWN:
-                self.start_game()
+                self.show_instructions()
+
+    def handle_instructions_events(self):
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                return True
+            elif event.type == KEYDOWN and event.key == K_ESCAPE:
+                return True
+            elif event.type == MOUSEBUTTONDOWN:
+                self.start_level_intro()
+
+    def handle_level_intro_events(self):
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                return True
+            elif event.type == KEYDOWN and event.key == K_ESCAPE:
+                return True
+            elif event.type == MOUSEBUTTONDOWN:
+                self.start_level()
+
+    def handle_level_completed_events(self):
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                return True
+            elif event.type == KEYDOWN and event.key == K_ESCAPE:
+                return True
+            elif event.type == MOUSEBUTTONDOWN:
+                self.start_next_level()
+
 
     def handle_paused_events(self):
         for event in pygame.event.get():
@@ -115,11 +160,22 @@ class PickUpPieces(object):
                 return True
             elif event.type == KEYDOWN and event.key == K_ESCAPE:
                 return True
+            elif event.type == MOUSEBUTTONDOWN:
+                self.reset_game()
+
+    def handle_game_completed_events(self):
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                return True
+            elif event.type == KEYDOWN and event.key == K_ESCAPE:
+                return True
+            elif event.type == MOUSEBUTTONDOWN:
+                self.reset_game()
 
 
     def init_assets(self):
         self.level_images = {}
-        self.level_images[1] = load_image('level-1.jpg')
+        #self.level_images[1] = load_image('level-1.jpg')
         self.background_image = load_image('background.png')
         self.title_image = load_image('title.png')
         self.shadow_image = load_image('shadow.png')
@@ -139,6 +195,14 @@ class PickUpPieces(object):
             self.render_paused()
         elif self.state == GAME_OVER:
             self.render_game_over()
+        elif self.state == INSTRUCTIONS:
+            self.render_instructions()
+        elif self.state == LEVEL_INTRO:
+            self.render_level_intro()
+        elif self.state == LEVEL_COMPLETED:
+            self.render_level_completed()
+        elif self.state == GAME_COMPLETED:
+            self.render_game_completed()
         else:
             self.render_menu()
 
@@ -169,6 +233,33 @@ class PickUpPieces(object):
         self.render_shadow_text(
             self.font_24, "Playing", self.cx, 50, (255, 255, 0), -2, CENTRE)
 
+    def render_instructions(self):
+        self.screen.blit(self.title_image, (0, 0))
+        self.render_shadow_text(
+            self.font_72, "Instructions", self.cx, 0, MENU_BROWN, -2, CENTRE)
+        self.render_shadow_text(
+            self.font_72, "Click to continue", self.cx, self.cy, MENU_GREY, -2, CENTRE)
+
+    def render_level_intro(self):
+        self.screen.blit(self.title_image, (0, 0))
+        self.render_shadow_text(
+            self.font_72, "Level intro", self.cx, 0, MENU_BROWN, -2, CENTRE)
+        self.render_shadow_text(
+            self.font_72, "Click to continue", self.cx, self.cy, MENU_GREY, -2, CENTRE)
+
+    def render_level_completed(self):
+        self.screen.blit(self.title_image, (0, 0))
+        self.render_shadow_text(
+            self.font_72, "Level complete", self.cx, 0, MENU_BROWN, -2, CENTRE)
+        self.render_shadow_text(
+            self.font_72, "Click to continue", self.cx, self.cy, MENU_GREY, -2, CENTRE)
+
+    def render_game_completed(self):
+        self.screen.blit(self.title_image, (0, 0))
+        self.render_shadow_text(
+            self.font_72, "Congratulations!", self.cx, 0, MENU_BROWN, -2, CENTRE)
+        self.render_shadow_text(
+            self.font_72, "Click to continue", self.cx, self.cy, MENU_GREY, -2, CENTRE)
 
     def render_menu(self):
         self.screen.blit(self.title_image, (0, 0))
@@ -176,6 +267,7 @@ class PickUpPieces(object):
             self.font_72, "Tear-reform", self.cx, 0, MENU_BROWN, -2, CENTRE)
         self.render_shadow_text(
             self.font_72, "Click to start", self.cx, self.cy, MENU_GREY, -2, CENTRE)
+
 
     def render_fps(self):
         fps = 'fps:%f' % self.clock.get_fps()
@@ -233,10 +325,18 @@ class PickUpPieces(object):
                 quit = self.handle_playing_events()
             elif self.state == MENU:
                 quit = self.handle_menu_events()
+            elif self.state == INSTRUCTIONS:
+                quit = self.handle_instructions_events()
             elif self.state == PAUSED:
                 quit = self.handle_paused_events()
             elif self.state == GAME_OVER:
                 quit = self.handle_game_over_events()
+            elif self.state == LEVEL_INTRO:
+                quit = self.handle_level_intro_events()
+            elif self.state == LEVEL_COMPLETED:
+                quit = self.handle_level_completed_events()
+            elif self.state == GAME_COMPLETED:
+                quit = self.handle_game_completed_events()
 
             self.render()
 
@@ -263,7 +363,7 @@ class PickUpPieces(object):
     def piece_placed(self):
         self.pieces_to_place -= 1
         if self.pieces_to_place == 0:
-            print "Completed!"
+            self.level_completed()
 
     def stop_dragging_piece(self, mouse_pos):
         if self.current_piece:
@@ -300,14 +400,20 @@ class PickUpPieces(object):
 
         return pieces
 
-    def start_game(self):
-        self.state = PLAYING
-        self.level = 1
-        self.start_level()
+    def show_instructions(self):
+        self.state = INSTRUCTIONS
+
+    def start_level_intro(self):
+        self.state = LEVEL_INTRO
+        self.level = self.levels[self.current_level]
+
+    # def start_game(self):
+    #     self.state = PLAYING
+    #     self.start_level()
 
     def start_level(self):
         # init puzzle images
-        self.current_image =self.level_images[self.level]
+        self.current_image =load_image(self.level.get('image_name'))
         self.max_dist = 500
         self.max_angle = 50
         self.rows = 4
@@ -321,6 +427,20 @@ class PickUpPieces(object):
         self.puzzle_complete = False
         self.shuffle_pieces(max_angle=self.max_angle, max_dist=self.max_dist)
         self.pieces_to_place = len(self.pieces)
+        self.state = PLAYING
+
+    def level_completed(self):
+        self.state = LEVEL_COMPLETED
+
+    def game_completed(self):
+        self.state = GAME_COMPLETED
+
+    def start_next_level(self):
+        self.current_level += 1
+        if self.current_level > self.max_levels:
+            self.game_completed()
+        else:
+            self.start_level_intro()
 
     def shuffle_pieces(self, max_dist=100, max_angle=0):
         for piece in self.pieces:
