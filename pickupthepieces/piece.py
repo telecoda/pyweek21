@@ -16,6 +16,7 @@ ROTATION_SPEED = 5
 
 LOCATION_ACCURACY = 10
 ANGLE_ACCURACY = 5
+SHADOW_OFFSET = 10
 
 def rotate_around_point(x,y, angle):
     ra = math.radians(angle)
@@ -28,11 +29,12 @@ def rotate_around_point(x,y, angle):
     return x_new, y_new
 
 class Piece(object):
-    def __init__(self,game,row,col,image, x_offset, y_offset):
+    def __init__(self,game,row,col,image, shadow_image, x_offset, y_offset):
         self.game = game
         self.row = row
         self.col = col
         self.image = image
+        self.shadow_image = shadow_image
 
         self.x_offset = x_offset
         self.y_offset = y_offset
@@ -101,10 +103,11 @@ class Piece(object):
         if self.in_position:
             image_pos_x = self.original_x_offset + self.game.pos_cx + self.cx
             image_pos_y = self.original_y_offset + self.game.pos_cy + self.cy
-
+            rotated_shadow = None
         else:
             image_pos_x = self.x_offset + self.cx
             image_pos_y = self.y_offset + self.cy
+            rotated_shadow = pygame.transform.rotozoom(self.shadow_image, -self.angle, self.game.scale)
 
         image_cx = float(image_pos_x + self.cx) * self.game.scale
         image_cy = float(image_pos_y + self.cy) * self.game.scale
@@ -112,6 +115,9 @@ class Piece(object):
 
         rotated_cx =  image_cx - rotated_image.get_width() /2
         rotated_cy =  image_cy - rotated_image.get_height() /2 
+        if rotated_shadow:
+            screen.blit(rotated_shadow,(rotated_cx+SHADOW_OFFSET, rotated_cy+SHADOW_OFFSET))
+
         screen.blit(rotated_image,(rotated_cx, rotated_cy))
 
         self.render_border(screen)
@@ -121,13 +127,14 @@ class Piece(object):
         """
         Renders a cross in the centre of the puzzle piece
         """
-        cx = float(self.x_offset + self.cx * 2) * self.game.scale
-        cy = float(self.y_offset + self.cy * 2) * self.game.scale
+        return
+        # cx = float(self.x_offset + self.cx * 2) * self.game.scale
+        # cy = float(self.y_offset + self.cy * 2) * self.game.scale
 
-        pygame.draw.line(screen, GREEN, [cx, cy], [cx + CENTRE_CROSS_SIZE, cy], 5)
-        pygame.draw.line(screen, GREEN, [cx, cy], [cx - CENTRE_CROSS_SIZE, cy], 5)
-        pygame.draw.line(screen, GREEN, [cx, cy], [cx, cy + CENTRE_CROSS_SIZE], 5)
-        pygame.draw.line(screen, GREEN, [cx, cy], [cx, cy - CENTRE_CROSS_SIZE], 5)
+        # pygame.draw.line(screen, GREEN, [cx, cy], [cx + CENTRE_CROSS_SIZE, cy], 1)
+        # pygame.draw.line(screen, GREEN, [cx, cy], [cx - CENTRE_CROSS_SIZE, cy], 1)
+        # pygame.draw.line(screen, GREEN, [cx, cy], [cx, cy + CENTRE_CROSS_SIZE], 1)
+        # pygame.draw.line(screen, GREEN, [cx, cy], [cx, cy - CENTRE_CROSS_SIZE], 1)
 
     def render_border(self,screen):
         """

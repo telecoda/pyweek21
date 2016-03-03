@@ -118,6 +118,7 @@ class PickUpPieces(object):
         self.level_images[1] = load_image('level-1.jpg')
         self.background_image = load_image('background.png')
         self.title_image = load_image('title.png')
+        self.shadow_image = load_image('shadow.png')
 
         self.font_16 = load_font('space age.ttf', 16)
         self.font_24 = load_font('space age.ttf', 24)
@@ -285,7 +286,9 @@ class PickUpPieces(object):
                 rect = pygame.Rect(start_x,start_y,piece_width,piece_height)
 
                 image_piece = whole_image.subsurface(rect)
-                piece = Piece(self, row,col,image_piece,start_x - piece_width / 2,start_y - piece_height / 2)
+                # create matching shadow image
+                shadow_image = pygame.transform.smoothscale(self.shadow_image,(piece_width, piece_height))
+                piece = Piece(self, row,col,image_piece, shadow_image,start_x - piece_width / 2,start_y - piece_height / 2)
 
                 pieces.append(piece)
 
@@ -301,8 +304,8 @@ class PickUpPieces(object):
         self.current_image =self.level_images[self.level]
         self.max_dist = 500
         self.max_angle = 50
-        self.rows = 3
-        self.cols = 3
+        self.rows = 4
+        self.cols = 4
         self.pieces = self.split_image(self.current_image,self.rows,self.cols)
         self.current_piece = None
         self.puzzle_width = self.current_image.get_width()
@@ -369,6 +372,6 @@ class PickUpPieces(object):
             self.scale = y_scale
 
         self.pos_cx = (width - self.puzzle_width) /2
-        self.pos_cy = (height - self.puzzle_height) /2 
+        self.pos_cy = (height - self.puzzle_height) /2 - max_dist / 2 
 
         # print "min_x: %d max_x: %d min_y: %d max_y: %d" % (min_x, max_x, min_x, max_y)
