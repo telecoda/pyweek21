@@ -416,8 +416,8 @@ class PickUpPieces(object):
         self.current_image =load_image(self.level.get('image_name'))
         self.max_dist = 500
         self.max_angle = 50
-        self.rows = 4
-        self.cols = 4
+        self.rows = self.level.get("rows",2)
+        self.cols = self.level.get("cols",2)
         self.pieces = self.split_image(self.current_image,self.rows,self.cols)
         self.current_piece = None
         self.puzzle_width = self.current_image.get_width()
