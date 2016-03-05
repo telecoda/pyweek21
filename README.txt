@@ -42,6 +42,13 @@ http://californiafonts.com/download/font/3332
 Siren
 http://www.freesound.org/people/fmagrao/sounds/80761/
 
+Music from
+https://ourmusicbox.com/category/orchestral/page/4/
+
+Photos from
+
+https://www.google.co.uk/search?q=world+war+2+london+photos&safe=off&biw=2560&bih=1322&tbm=isch&tbo=u&source=univ&sa=X&sqi=2&ved=0ahUKEwi68LC4nKnLAhWiApoKHcjSDOcQsAQIGw#safe=off&tbs=sur:fm&tbm=isch&q=world+war+2+london+the+blitz
+
 Development notes 
 -----------------
 

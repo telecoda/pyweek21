@@ -73,7 +73,7 @@ class Piece(object):
                 self.x_offset = self.original_x_offset + self.game.pos_cx
                 self.y_offset = self.original_y_offset + self.game.pos_cy
                 self.angle = self.original_angle
-                #self.update_polygon()
+                self.game.paper_sound.play(0)
                 self.stop_dragging()
                 return True
         return False

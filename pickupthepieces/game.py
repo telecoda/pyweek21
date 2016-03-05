@@ -1,8 +1,10 @@
 import os, pygame, random
 from pygame.locals import *
-from data import load
+from data import load, filepath
 from piece import Piece
 from levels import levels
+
+mixer = pygame.mixer
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
@@ -30,6 +32,25 @@ BOTTOM = 5
 # COLOURS
 MENU_BROWN = (109,69,27)
 MENU_GREY = (160,160,160)
+
+def load_sound(file):
+    "loads a sound"
+    try:
+         sound = mixer.Sound(filepath(file))
+    except pygame.error:
+        raise SystemExit('Could not load sound "%s" %s' %
+                         (file, pygame.get_error()))
+    return sound
+
+def load_music(file):
+    "loads music"
+    try:
+         music = mixer.music.load(filepath(file))
+    except pygame.error:
+        raise SystemExit('Could not load music "%s" %s' %
+                         (file, pygame.get_error()))
+    return music
+
 
 def load_image(file):
     "loads an image"
@@ -60,6 +81,8 @@ class PickUpPieces(object):
         # Initialize Everything
         pygame.init()
 
+        mixer.init(44100)
+
         pygame.display.set_caption("Pick up the pieces")
         pygame.key.set_repeat(KEY_REPEAT)
 
@@ -75,11 +98,15 @@ class PickUpPieces(object):
 
         self.init_assets()
         self.clock = pygame.time.Clock()
-
+        self.current_music = None
         self.reset_game()
 
     def reset_game(self):
         self.state = MENU
+        if self.current_music:
+            self.current_music.stop()
+        self.current_music = self.intro_music
+        self.current_music.play(-1)
         self.current_piece = None
         self.current_level = 1
         self.score = 0
@@ -174,17 +201,22 @@ class PickUpPieces(object):
 
 
     def init_assets(self):
-        self.level_images = {}
-        #self.level_images[1] = load_image('level-1.jpg')
         self.background_image = load_image('background.png')
         self.title_image = load_image('title.png')
         self.shadow_image = load_image('shadow.png')
+        self.ending_image = load_image('ending.png')
 
         self.font_16 = load_font('ApocalypseDeluxe-Regular.ttf', 16)
         self.font_24 = load_font('ApocalypseDeluxe-Regular.ttf', 24)
         self.font_36 = load_font('ApocalypseDeluxe-Regular.ttf', 36)
         self.font_48 = load_font('ApocalypseDeluxe-Regular.ttf', 48)
         self.font_72 = load_font('ApocalypseDeluxe-Regular.ttf', 72)
+
+        self.paper_sound = load_sound('paper-flip.wav')
+        self.siren_sound = load_sound('siren.wav')
+        self.ticking_sound = load_sound('ticking.wav')
+        self.intro_music = load_sound('intro.wav')
+        self.ending_music = load_sound('ending.wav')
 
 
     def render(self):
@@ -237,25 +269,45 @@ class PickUpPieces(object):
         self.screen.blit(self.title_image, (0, 0))
         self.render_shadow_text(
             self.font_72, "Instructions", self.cx, 0, MENU_BROWN, -2, CENTRE)
+
+        text_y = 100
+        for text in self.levels[0].get("text"):
+            self.render_shadow_text(
+                self.font_36, text, self.cx, text_y, MENU_GREY, -2, CENTRE)
+            text_y += 50
+
         self.render_shadow_text(
-            self.font_72, "Click to continue", self.cx, self.cy, MENU_GREY, -2, CENTRE)
+            self.font_72, "Click to continue", self.cx, 500, MENU_GREY, -2, CENTRE)
 
     def render_level_intro(self):
         self.screen.blit(self.title_image, (0, 0))
         self.render_shadow_text(
-            self.font_72, "Level intro", self.cx, 0, MENU_BROWN, -2, CENTRE)
+            self.font_72, self.level.get("name"), self.cx, 0, MENU_BROWN, -2, CENTRE)
+        
+        text_y = 100
+        for text in self.level.get("text"):
+            self.render_shadow_text(
+                self.font_36, text, self.cx, text_y, MENU_GREY, -2, CENTRE)
+            text_y += 50
+
         self.render_shadow_text(
-            self.font_72, "Click to continue", self.cx, self.cy, MENU_GREY, -2, CENTRE)
+            self.font_72, "Click to continue", self.cx, 500, MENU_GREY, -2, CENTRE)
 
     def render_level_completed(self):
-        self.screen.blit(self.title_image, (0, 0))
+        self.screen.blit(self.background_image, (0, 0))
+        x_offset = (self.screen.get_width() - self.current_image.get_width())/2
+        y_offset = (self.screen.get_height() - self.current_image.get_height())/2
+        self.screen.blit(self.current_image, (x_offset, y_offset))
         self.render_shadow_text(
             self.font_72, "Level complete", self.cx, 0, MENU_BROWN, -2, CENTRE)
         self.render_shadow_text(
             self.font_72, "Click to continue", self.cx, self.cy, MENU_GREY, -2, CENTRE)
 
     def render_game_completed(self):
-        self.screen.blit(self.title_image, (0, 0))
+        self.screen.blit(self.background_image, (0, 0))
+        x_offset = (self.screen.get_width() - self.current_image.get_width())/2
+        y_offset = (self.screen.get_height() - self.current_image.get_height())/2
+        self.screen.blit(self.ending_image, (x_offset, 80))
         self.render_shadow_text(
             self.font_72, "Congratulations!", self.cx, 0, MENU_BROWN, -2, CENTRE)
         self.render_shadow_text(
@@ -264,7 +316,7 @@ class PickUpPieces(object):
     def render_menu(self):
         self.screen.blit(self.title_image, (0, 0))
         self.render_shadow_text(
-            self.font_72, "Tear-reform", self.cx, 0, MENU_BROWN, -2, CENTRE)
+            self.font_72, "Picking up the pieces", self.cx, 0, MENU_BROWN, -2, CENTRE)
         self.render_shadow_text(
             self.font_72, "Click to start", self.cx, self.cy, MENU_GREY, -2, CENTRE)
 
@@ -413,11 +465,14 @@ class PickUpPieces(object):
 
     def start_level(self):
         # init puzzle images
+        if self.current_music:
+            self.current_music.stop()
         self.current_image =load_image(self.level.get('image_name'))
-        self.max_dist = 500
-        self.max_angle = 50
+        self.current_music =load_sound(self.level.get('music'))
         self.rows = self.level.get("rows",2)
         self.cols = self.level.get("cols",2)
+        self.max_dist = self.level.get("max_dist",100)
+        self.max_angle = self.level.get("max_angle",0)
         self.pieces = self.split_image(self.current_image,self.rows,self.cols)
         self.current_piece = None
         self.puzzle_width = self.current_image.get_width()
@@ -428,12 +483,22 @@ class PickUpPieces(object):
         self.shuffle_pieces(max_angle=self.max_angle, max_dist=self.max_dist)
         self.pieces_to_place = len(self.pieces)
         self.state = PLAYING
+        #self.ticking_sound.play(-1)
+        self.current_music.play()
 
     def level_completed(self):
         self.state = LEVEL_COMPLETED
+        #self.ticking_sound.stop()
+        #self.current_music.stop()
 
     def game_completed(self):
         self.state = GAME_COMPLETED
+        if self.current_music:
+            self.current_music.stop()
+        self.current_music = self.ending_music
+
+        #self.ticking_sound.stop()
+        self.current_music.play()
 
     def start_next_level(self):
         self.current_level += 1
@@ -443,11 +508,31 @@ class PickUpPieces(object):
             self.start_level_intro()
 
     def shuffle_pieces(self, max_dist=100, max_angle=0):
+        
+        # swap piece offset
+
+        offsets = []
+        for piece in self.pieces:
+            # random angle
+            offset = (piece.x_offset, piece.y_offset)
+            offsets.append(offset)
+
+        # update piece with random offset
+        for piece in self.pieces:
+            i = random.randint(0,len(offsets)-1)
+            new_offset = offsets[i]
+            del offsets[i]
+            piece.x_offset = new_offset[0]
+            piece.y_offset = new_offset[1]
+
         for piece in self.pieces:
             # random angle
             new_angle = random.randint(0,max_angle) / 5 * 5
-            new_x_offset = random.randint(0,max_dist) + piece.x_offset
-            new_y_offset = random.randint(0,max_dist) + piece.y_offset
+            new_x_offset = random.randint(0,max_dist)
+            new_y_offset = random.randint(0,max_dist/2)
+
+
+
             piece.move((new_x_offset, new_y_offset), new_angle)
 
         # scale puzzle to fit all pieces on screen
@@ -457,35 +542,6 @@ class PickUpPieces(object):
         """
         Scale size of piece so they all fit on screen
         """
-        # min_x = self.screen.get_width()/2
-        # min_y = self.screen.get_height()/2
-        # max_x = min_x
-        # max_y = min_y
-        # for piece in self.pieces:
-        #     # calc min/max values
-        #     if piece.width > piece.height:
-        #         piece_size = piece.width
-        #     else:
-        #         piece_size = piece.height
-            
-        #     max_piece_x = piece.x_offset +(2 * piece_size)
-        #     min_piece_x = piece.x_offset
-        #     max_piece_y = piece.y_offset + (2 * piece_size)
-        #     min_piece_y = piece.y_offset
-
-        #     if min_piece_x < min_x:
-        #         min_x = min_piece_x
-        #     if min_piece_y < min_y:
-        #         min_y = min_piece_y
-        #     if max_piece_x > max_x:
-        #         max_x = max_piece_x
-        #     if max_piece_y > max_y:
-        #         max_y = max_piece_y
-
-        # # calc total size required
-        # width = max_x - min_x
-        # height = max_y - min_y
-
         width = self.screen.get_width() + max_dist * 2
         height = self.screen.get_height() + max_dist * 2
         x_scale = float(self.screen.get_width()) / float(width)
