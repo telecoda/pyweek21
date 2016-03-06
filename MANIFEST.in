@@ -11,6 +11,7 @@ include pickupthepieces/game.py
 include pickupthepieces/levels.py
 include pickupthepieces/pickupthepieces.sublime-workspace
 include pickupthepieces/piece.py
+include pickupthepieces.py
 include pyweek_upload.py
 include run_game.py
 include setup.py

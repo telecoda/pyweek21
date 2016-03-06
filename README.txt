@@ -7,14 +7,22 @@ Team: telecoda_2016
 Members: telecoda
 License: see LICENSE.txt
 
-Running on OSX
---------------
+Running from source
+-------------------
+I'd recommend creating a separate virtualenv to keep the dependencies isolated for the game.
+Install virtualenvwrapper
+Windows: https://pypi.python.org/pypi/virtualenvwrapper-win
+
+OSX/Linux http://virtualenvwrapper.readthedocs.org/en/latest/install.html
+
 mkvirtualenv pickupthepieces
 pip install hg+http://bitbucket.org/pygame/pygame
 pip install pylygon
 pip install numpy
 
 python run_game.py
+
+(Sorry I couldn't produce a native exe in the time limit)
 
 
 Running the Game
