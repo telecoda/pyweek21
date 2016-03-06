@@ -7,11 +7,14 @@ Team: telecoda_2016
 Members: telecoda
 License: see LICENSE.txt
 
-Dependencies
---------------------
-pip install pygame
+Running on OSX
+--------------
+mkvirtualenv pickupthepieces
+pip install hg+http://bitbucket.org/pygame/pygame
 pip install pylygon
 pip install numpy
+
+python run_game.py
 
 
 Running the Game
@@ -31,7 +34,9 @@ Put the pictures back together
 
 Move the cursor around the screen with the mouse.
 
-Press the left mouse button to fire the ducks.
+Click mouse to select pieces to move.
+
+When selected pieces can be rotated left or right, but using the 'A' and 'D' keys or 'LEFT' and 'RIGHT' keys.
 
 
 References
