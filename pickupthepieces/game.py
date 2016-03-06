@@ -1,4 +1,4 @@
-import os, pygame, random
+import os, pygame, random, time
 from pygame.locals import *
 from data import load, filepath
 from piece import Piece
@@ -30,8 +30,13 @@ MIDDLE = 4
 BOTTOM = 5
 
 # COLOURS
+MENU_WHITE = (255,255,255)
 MENU_BROWN = (109,69,27)
+MENU_YELLOW = (255,255,0)
 MENU_GREY = (160,160,160)
+TIMER = (255, 255, 255)
+TIMER_SIREN = (255, 0, 0)
+SCORE_COLOUR = (255, 255, 255)
 
 def load_sound(file):
     "loads a sound"
@@ -127,13 +132,13 @@ class PickUpPieces(object):
                 self.stop_dragging_piece(mouse_pos)
             elif event.type == MOUSEMOTION:
                 self.drag_piece(mouse_pos)
-            elif event.type == KEYDOWN and event.key == K_a:
+            elif event.type == KEYDOWN and (event.key == K_a or event.key == K_LEFT):
                 self.rotate_piece_left()
-            elif event.type == KEYDOWN and event.key == K_d:
+            elif event.type == KEYDOWN and (event.key == K_d or event.key == K_RIGHT):
                 self.rotate_piece_right()
             # TEMP: level skip
-            elif event.type == KEYDOWN and event.key == K_SPACE:
-                self.level_completed()
+            # elif event.type == KEYDOWN and event.key == K_SPACE:
+            #     self.level_completed()
 
 
     def handle_menu_events(self):
@@ -205,6 +210,7 @@ class PickUpPieces(object):
         self.title_image = load_image('title.png')
         self.shadow_image = load_image('shadow.png')
         self.ending_image = load_image('ending.png')
+        self.game_over_image = load_image('game-over.jpg')
 
         self.font_16 = load_font('ApocalypseDeluxe-Regular.ttf', 16)
         self.font_24 = load_font('ApocalypseDeluxe-Regular.ttf', 24)
@@ -217,6 +223,7 @@ class PickUpPieces(object):
         self.ticking_sound = load_sound('ticking.wav')
         self.intro_music = load_sound('intro.wav')
         self.ending_music = load_sound('ending.wav')
+        self.bombs_sound = load_sound('bombs-dropping.wav')
 
 
     def render(self):
@@ -240,7 +247,7 @@ class PickUpPieces(object):
 
         self.clock.tick()
 
-        self.render_fps()
+        #self.render_fps()
         pygame.display.flip()
 
     def render_playing(self):
@@ -262,19 +269,45 @@ class PickUpPieces(object):
             if not piece.in_position:
                 piece.render(self.screen) 
 
+        self.render_score()
+        self.render_time()
+
+    def render_score(self):
+        # score
+        score_str = "Score: %d" % self.score 
         self.render_shadow_text(
-            self.font_24, "Playing", self.cx, 50, (255, 255, 0), -2, CENTRE)
+            self.font_24, score_str, 5, 5, SCORE_COLOUR, -2, LEFT)
+
+    def render_time(self):
+        # time
+        self.time_remaining = self.end_time - time.time()
+        secs = self.time_remaining % 60
+        mins = self.time_remaining / 60
+        time_str = "Time: %d:%02d" % (mins,secs) 
+
+        if self.time_remaining < 0:
+            self.game_over()
+
+        if self.time_remaining < 41 and not self.siren_started:
+            self.siren_sound.play()
+            self.siren_started = True
+
+        colour = TIMER
+        if self.siren_started:
+            colour = TIMER_SIREN
+        self.render_shadow_text(
+            self.font_24, time_str, self.screen.get_width()-5, 5, colour, -2, RIGHT)
 
     def render_instructions(self):
         self.screen.blit(self.title_image, (0, 0))
         self.render_shadow_text(
-            self.font_72, "Instructions", self.cx, 0, MENU_BROWN, -2, CENTRE)
+            self.font_72, "Instructions", self.cx, 0, MENU_WHITE, -2, CENTRE)
 
         text_y = 100
         for text in self.levels[0].get("text"):
             self.render_shadow_text(
-                self.font_36, text, self.cx, text_y, MENU_GREY, -2, CENTRE)
-            text_y += 50
+                self.font_24, text, self.cx, text_y, MENU_YELLOW, -2, CENTRE)
+            text_y += 30
 
         self.render_shadow_text(
             self.font_72, "Click to continue", self.cx, 500, MENU_GREY, -2, CENTRE)
@@ -282,13 +315,13 @@ class PickUpPieces(object):
     def render_level_intro(self):
         self.screen.blit(self.title_image, (0, 0))
         self.render_shadow_text(
-            self.font_72, self.level.get("name"), self.cx, 0, MENU_BROWN, -2, CENTRE)
+            self.font_72, self.level.get("name"), self.cx, 0, MENU_WHITE, -2, CENTRE)
         
         text_y = 100
         for text in self.level.get("text"):
             self.render_shadow_text(
-                self.font_36, text, self.cx, text_y, MENU_GREY, -2, CENTRE)
-            text_y += 50
+                self.font_24, text, self.cx, text_y, MENU_WHITE, -2, CENTRE)
+            text_y += 30
 
         self.render_shadow_text(
             self.font_72, "Click to continue", self.cx, 500, MENU_GREY, -2, CENTRE)
@@ -299,7 +332,7 @@ class PickUpPieces(object):
         y_offset = (self.screen.get_height() - self.current_image.get_height())/2
         self.screen.blit(self.current_image, (x_offset, y_offset))
         self.render_shadow_text(
-            self.font_72, "Level complete", self.cx, 0, MENU_BROWN, -2, CENTRE)
+            self.font_72, "Level complete", self.cx, 0, MENU_WHITE, -2, CENTRE)
         self.render_shadow_text(
             self.font_72, "Click to continue", self.cx, self.cy, MENU_GREY, -2, CENTRE)
 
@@ -309,14 +342,17 @@ class PickUpPieces(object):
         y_offset = (self.screen.get_height() - self.current_image.get_height())/2
         self.screen.blit(self.ending_image, (x_offset, 80))
         self.render_shadow_text(
-            self.font_72, "Congratulations!", self.cx, 0, MENU_BROWN, -2, CENTRE)
+            self.font_72, "Congratulations!", self.cx, 0, MENU_WHITE, -2, CENTRE)
         self.render_shadow_text(
             self.font_72, "Click to continue", self.cx, self.cy, MENU_GREY, -2, CENTRE)
 
     def render_menu(self):
         self.screen.blit(self.title_image, (0, 0))
         self.render_shadow_text(
-            self.font_72, "Picking up the pieces", self.cx, 0, MENU_BROWN, -2, CENTRE)
+            self.font_72, "Picking up the pieces", self.cx, 0, MENU_WHITE, -2, CENTRE)
+        self.render_shadow_text(
+
+            self.font_16, "by Telecoda", 700, 70, MENU_WHITE, -2, RIGHT)
         self.render_shadow_text(
             self.font_72, "Click to start", self.cx, self.cy, MENU_GREY, -2, CENTRE)
 
@@ -332,7 +368,14 @@ class PickUpPieces(object):
         pass
 
     def render_game_over(self):
-        pass
+        self.screen.blit(self.game_over_image, (0, 0))
+        x_offset = (self.screen.get_width() - self.current_image.get_width())/2
+        y_offset = (self.screen.get_height() - self.current_image.get_height())/2
+        self.render_shadow_text(
+            self.font_72, "Game over", self.cx, 0, MENU_WHITE, -2, CENTRE)
+        self.render_shadow_text(
+            self.font_72, "Click to continue", self.cx, self.cy, MENU_GREY, -2, CENTRE)
+        self.render_score()
 
     def render_shadow_text(self, font, text, x, y, colour, shadow_offset=-2, align=CENTRE):
         surface = font.render(text, 1, (0,0,0))
@@ -467,12 +510,17 @@ class PickUpPieces(object):
         # init puzzle images
         if self.current_music:
             self.current_music.stop()
+            self.siren_sound.stop()
+
         self.current_image =load_image(self.level.get('image_name'))
         self.current_music =load_sound(self.level.get('music'))
         self.rows = self.level.get("rows",2)
         self.cols = self.level.get("cols",2)
         self.max_dist = self.level.get("max_dist",100)
         self.max_angle = self.level.get("max_angle",0)
+        self.time_limit = self.level.get('time_limit',99)
+        self.start_time = time.time()
+        self.end_time = self.start_time + self.time_limit
         self.pieces = self.split_image(self.current_image,self.rows,self.cols)
         self.current_piece = None
         self.puzzle_width = self.current_image.get_width()
@@ -484,10 +532,12 @@ class PickUpPieces(object):
         self.pieces_to_place = len(self.pieces)
         self.state = PLAYING
         #self.ticking_sound.play(-1)
+        self.siren_started = False
         self.current_music.play()
 
     def level_completed(self):
         self.state = LEVEL_COMPLETED
+        self.score += self.time_remaining
         #self.ticking_sound.stop()
         #self.current_music.stop()
 
@@ -499,6 +549,13 @@ class PickUpPieces(object):
 
         #self.ticking_sound.stop()
         self.current_music.play()
+
+    def game_over(self):
+        self.state = GAME_OVER
+        if self.current_music:
+            self.current_music.stop()
+        self.bombs_sound.play()
+
 
     def start_next_level(self):
         self.current_level += 1

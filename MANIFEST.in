@@ -7,6 +7,10 @@ include TODO.txt
 include pickupthepieces/__init__.py
 include pickupthepieces/__main__.py
 include pickupthepieces/data.py
+include pickupthepieces/game.py
+include pickupthepieces/levels.py
+include pickupthepieces/pickupthepieces.sublime-workspace
+include pickupthepieces/piece.py
 include pyweek_upload.py
 include run_game.py
 include setup.py
