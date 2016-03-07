@@ -7,6 +7,8 @@ Team: telecoda_2016
 Members: telecoda
 License: see LICENSE.txt
 
+Gameplay: (video)[https://www.youtube.com/watch?v=yFz0dLcIWDw] 
+
 Running from source
 -------------------
 I'd recommend creating a separate virtualenv to keep the dependencies isolated for the game.
